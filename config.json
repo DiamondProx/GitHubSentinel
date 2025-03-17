@@ -21,9 +21,20 @@
     "report_types": [
         "github",
         "hacker_news_hours_topic",
-        "hacker_news_daily_report"
+        "hacker_news_daily_report",
+        "ths_finance_daily_report"
     ],
     "slack": {
         "webhook_url": "your_slack_webhook_url"
+    },
+    "ths_finance": {
+        "data_dir": "data/ths_finance",
+        "report_dir": "reports/ths_finance",
+        "wechat": {
+            "app_id": "your_wechat_app_id",
+            "app_secret": "your_wechat_app_secret",
+            "template_id": "your_wechat_template_id"
+        },
+        "prompt_template_file": "prompts/ths_finance_prompt.txt"
     }
 }

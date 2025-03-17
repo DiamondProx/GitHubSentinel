@@ -2,6 +2,9 @@ import json
 import os
 
 class Config:
+    class Config:
+        arbitrary_types_allowed = True
+
     def __init__(self):
         self.load_config()
     
@@ -32,3 +35,6 @@ class Config:
             # 加载 Slack 配置
             slack_config = config.get('slack', {})
             self.slack_webhook_url = slack_config.get('webhook_url')
+            
+            # 加载同花顺财经配置
+            self.ths_finance = config.get('ths_finance', {})

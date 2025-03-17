@@ -15,8 +15,12 @@ logger.add(sys.stderr, level="ERROR", format=log_format, colorize=True)
 # 同样使用统一的格式配置日志文件输出，设置文件大小为1MB自动轮换
 logger.add("logs/app.log", rotation="1 MB", level="DEBUG", format=log_format)
 
-# 为 logger 设置别名，方便在其他模块中导入和使用
-LOG = logger
+# 创建一个默认的日志记录器实例
+LOG = logger.bind(name="default")
 
-# 将 LOG 变量公开，允许其他模块通过 from logger import LOG 来使用它
-__all__ = ["LOG"]
+# 定义获取logger的函数
+def get_logger(name=None):
+    return logger.bind(name=name)
+
+# 将LOG变量和get_logger函数公开，允许其他模块导入使用
+__all__ = ["LOG", "get_logger"]

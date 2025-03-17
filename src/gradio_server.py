@@ -1,4 +1,10 @@
 import gradio as gr  # 导入gradio库用于创建GUI
+from pydantic import BaseModel
+from typing import Any
+
+class Config(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
 
 from config import Config  # 导入配置管理模块
 from github_client import GitHubClient  # 导入用于GitHub API操作的客户端
@@ -7,12 +13,14 @@ from report_generator import ReportGenerator  # 导入报告生成器模块
 from llm import LLM  # 导入可能用于处理语言模型的LLM类
 from subscription_manager import SubscriptionManager  # 导入订阅管理器
 from logger import LOG  # 导入日志记录器
+from ths_finance_client import THSFinanceClient  # 导入同花顺财经客户端
 
 # 创建各个组件的实例
 config = Config()
 github_client = GitHubClient(config.github_token)
 hacker_news_client = HackerNewsClient() # 创建 Hacker News 客户端实例
 subscription_manager = SubscriptionManager(config.subscriptions_file)
+ths_finance_client = THSFinanceClient(config)  # 创建同花顺财经客户端实例
 
 def generate_github_report(model_type, model_name, repo, days):
     config.llm_model_type = model_type
@@ -46,6 +54,25 @@ def generate_hn_hour_topic(model_type, model_name):
     report, report_file_path = report_generator.generate_hn_topic_report(markdown_file_path)
 
     return report, report_file_path  # 返回报告内容和报告文件路径
+
+
+def generate_ths_finance_report(model_type, model_name):
+    config.llm_model_type = model_type
+
+    if model_type == "openai":
+        config.openai_model_name = model_name
+    else:
+        config.ollama_model_name = model_name
+
+    # 获取数据并生成报告
+    data_file = ths_finance_client.fetch_and_save_data()
+    report_file = ths_finance_client.generate_report(data_file)
+
+    # 读取报告内容
+    with open(report_file, 'r', encoding='utf-8') as f:
+        report = f.read()
+
+    return report, report_file
 
 
 # 定义一个回调函数，用于根据 Radio 组件的选择返回不同的 Dropdown 选项
@@ -110,6 +137,28 @@ with gr.Blocks(title="GitHubSentinel") as demo:
         # 将按钮点击事件与导出函数绑定
         button.click(generate_hn_hour_topic, inputs=[model_type, model_name,], outputs=[markdown_output, file_output])
 
+    # 创建同花顺财经信息 Tab
+    with gr.Tab("同花顺财经信息"):
+        gr.Markdown("## 同花顺财经信息")  # 添加小标题
+
+        # 创建 Radio 组件
+        model_type = gr.Radio(["openai", "ollama"], label="模型类型", info="使用 OpenAI GPT API 或 Ollama 私有化模型服务")
+
+        # 创建 Dropdown 组件
+        model_name = gr.Dropdown(choices=["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"], label="选择模型")
+
+        # 使用 radio 组件的值来更新 dropdown 组件的选项
+        model_type.change(fn=update_model_list, inputs=model_type, outputs=model_name)
+
+        # 创建按钮来获取数据和生成报告
+        button = gr.Button("获取数据并生成分析报告")
+
+        # 设置输出组件
+        markdown_output = gr.Markdown()
+        file_output = gr.File(label="下载报告")
+
+        # 将按钮点击事件与导出函数绑定
+        button.click(generate_ths_finance_report, inputs=[model_type, model_name], outputs=[markdown_output, file_output])
 
 
 if __name__ == "__main__":
